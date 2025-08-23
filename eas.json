@@ -1,0 +1,66 @@
+{
+  "cli": {
+    "version": ">= 16.7.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_BASE_URL": "https://pizzaurum--demo.expo.app",
+        "EXPO_PUBLIC_STRIPE_PUBLIC_KEY": "pk_test_51RfJg2A5zO2ndp904d9nxDXS0CTQzZdCw2hyEioFFz3glv1mCWbf747lE36YIdFzypuzd9rruwf9d7VaxbKG8zp600vs136kvK",
+        "EXPO_PUBLIC_STRIPE_MERCHANT_ID": "merchant.pizzaurum.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD1WRcpMGXbePiPXtxXgZGYc1B2ru_OwX0",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ncfqzaayqibsrngdzngg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jZnF6YWF5cWlic3JuZ2R6bmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTg5NzMsImV4cCI6MjA2NjA5NDk3M30.Wr6ZaCBEq_v0t11Iqko_haa-5eV7sa9rAKtljlRvx2s",
+        "EXPO_PUBLIC_SANITY_PROJECT_ID": "i20dthz1",
+        "EXPO_PUBLIC_SANITY_DATASET": "production",
+        "EXPO_PUBLIC_SANITY_STUDIO_URL": "https://pizzaurum.sanity.studio/structure",
+        "EXPO_PUBLIC_TWILIO_PHONE_NUMBER": "+393486974498"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_BASE_URL": "https://pizzaurum--demo.expo.app",
+        "EXPO_PUBLIC_STRIPE_PUBLIC_KEY": "pk_live_51RfJg2A5zO2ndp904d9nxDXS0CTQzZdCw2hyEioFFz3glv1mCWbf747lE36YIdFzypuzd9rruwf9d7VaxbKG8zp600vs136kvK",
+        "EXPO_PUBLIC_STRIPE_MERCHANT_ID": "merchant.pizzaurum.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD1WRcpMGXbePiPXtxXgZGYc1B2ru_OwX0",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ncfqzaayqibsrngdzngg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jZnF6YWF5cWlic3JuZ2R6bmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTg5NzMsImV4cCI6MjA2NjA5NDk3M30.Wr6ZaCBEq_v0t11Iqko_haa-5eV7sa9rAKtljlRvx2s",
+        "EXPO_PUBLIC_SANITY_PROJECT_ID": "i20dthz1",
+        "EXPO_PUBLIC_SANITY_DATASET": "production",
+        "EXPO_PUBLIC_SANITY_STUDIO_URL": "https://pizzaurum.sanity.studio/structure",
+        "EXPO_PUBLIC_TWILIO_PHONE_NUMBER": "+393486974498"
+      }
+    },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_BASE_URL": "https://pizzaurum--demo.expo.app",
+        "EXPO_PUBLIC_STRIPE_PUBLIC_KEY": "pk_live_51RfJg2A5zO2ndp904d9nxDXS0CTQzZdCw2hyEioFFz3glv1mCWbf747lE36YIdFzypuzd9rruwf9d7VaxbKG8zp600vs136kvK",
+        "EXPO_PUBLIC_STRIPE_MERCHANT_ID": "merchant.pizzaurum.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD1WRcpMGXbePiPXtxXgZGYc1B2ru_OwX0",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ncfqzaayqibsrngdzngg.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jZnF6YWF5cWlic3JuZ2R6bmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTg5NzMsImV4cCI6MjA2NjA5NDk3M30.Wr6ZaCBEq_v0t11Iqko_haa-5eV7sa9rAKtljlRvx2s",
+        "EXPO_PUBLIC_SANITY_PROJECT_ID": "i20dthz1",
+        "EXPO_PUBLIC_SANITY_DATASET": "production",
+        "EXPO_PUBLIC_SANITY_STUDIO_URL": "https://pizzaurum.sanity.studio/structure",
+        "EXPO_PUBLIC_TWILIO_PHONE_NUMBER": "+393486974498"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
