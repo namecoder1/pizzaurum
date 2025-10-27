@@ -28,6 +28,7 @@ import { useCartContext } from "@/contexts/cart-context";
 import { usePizzaCustomization } from "@/hooks/use-pizza-customization";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function CustomerDashboard() {
   const { session } = useAuth();
@@ -384,9 +385,9 @@ export default function CustomerDashboard() {
 
   // Mobile Layout
   return (
-    <SafeAreaView className="flex-1 mb-16">
-      <MobileHeader title="Ordina" icon="pizza-outline" />
-      <ScrollView className={`flex-1 px-6 py-6 ${Platform.OS === "ios" ? "pb-32" : ""}`}>
+    <SafeAreaView className="flex-1 mb-14 bg-neutral-900">
+      <MobileHeader title="Ordina" icon={<Ionicons name="pizza-outline" size={20} color="white" />} />
+      <ScrollView className={`flex-1 bg-white px-4 py-6 ${Platform.OS === "ios" ? "pb-32" : ""}`}>
 
         <MobileMonthly
           showLoginModal={false}
@@ -448,7 +449,7 @@ export default function CustomerDashboard() {
   );
 }
 
-const ProductsGroup = ({
+export const ProductsGroup = ({
   title,
   children,
   os,

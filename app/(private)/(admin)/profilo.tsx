@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import PasswordInput from '@/components/ui/password-input'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/auth-context'
 import { useSupabase } from '@/contexts/supabase-context'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { printLog } from '@/lib/utils'
+import { Ionicons } from '@expo/vector-icons'
 import React, { useState } from 'react'
 import { Alert, Platform, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -33,15 +33,7 @@ const AdminProfile = () => {
   const [passwordChanged, setPasswordChanged] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
   
-  // Admin creation states
-  const [newAdminEmail, setNewAdminEmail] = useState('')
-  const [newAdminName, setNewAdminName] = useState('')
-  const [creatingAdmin, setCreatingAdmin] = useState(false)
-  const [adminCreated, setAdminCreated] = useState(false)
-  const [createdAdminInfo, setCreatedAdminInfo] = useState<{name: string, email: string} | null>(null)
   const [adminName, setAdminName] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
 
@@ -163,79 +155,6 @@ const AdminProfile = () => {
     }
   }
 
-  const handleCreateAdmin = async () => {
-    if (!newAdminEmail || !newAdminName) {
-      Alert.alert('Errore', 'Compila tutti i campi')
-      return
-    }
-
-    setCreatingAdmin(true)
-
-    try {
-      // Utilizza l'endpoint API per creare l'admin
-      const response = await fetch(`${baseUrl}/api/admin/create-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: newAdminEmail,
-          name: newAdminName,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        Alert.alert('Errore', result.error || 'Errore nella creazione dell\'admin')
-        return
-      }
-
-      // Invia email con le credenziali se la creazione è andata a buon fine
-      if (result.success && result.tempPassword) {
-        try {
-          const emailResponse = await fetch(`${baseUrl}/api/resend/admin-credentials`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: newAdminEmail,
-              name: newAdminName,
-              password: result.tempPassword,
-            }),
-          })
-
-          if (!emailResponse.ok) {
-            printLog('Errore nell\'invio email credenziali', true)
-            // Non blocchiamo il processo se l'email fallisce
-          } else {
-            printLog('Email con credenziali inviata con successo')
-          }
-        } catch (emailError) {
-          printLog(`Errore nell'invio email: ${emailError}`, true)
-          // Non blocchiamo il processo se l'email fallisce
-        }
-      }
-
-      // Mostra il messaggio di successo
-      setCreatedAdminInfo({ name: newAdminName, email: newAdminEmail })
-      setAdminCreated(true)
-      setNewAdminEmail('')
-      setNewAdminName('')
-      
-      // Nascondi il messaggio dopo 5 secondi
-      setTimeout(() => {
-        setAdminCreated(false)
-        setCreatedAdminInfo(null)
-      }, 5000)
-    } catch (error) {
-      printLog(`Error creating admin: ${error}`, true)
-      Alert.alert('Errore', 'Si è verificato un errore inaspettato')
-    } finally {
-      setCreatingAdmin(false)
-    }
-  }
 
   const handleSaveProfile = async () => {
     if (!adminName.trim()) {
@@ -281,7 +200,6 @@ const AdminProfile = () => {
             <TabsList className='flex-row items-center'>
               <TabsTrigger value='profile' className='flex-1'><Text>Profilo</Text></TabsTrigger>
               <TabsTrigger value='security' className='flex-1'><Text>Sicurezza</Text></TabsTrigger>
-              <TabsTrigger value='admin' className='flex-1'><Text>Gestione Admin</Text></TabsTrigger>
             </TabsList>
             
             <TabsContent value='profile' className='mt-4'>
@@ -417,90 +335,16 @@ const AdminProfile = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value='admin' className='mt-4'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Creazione Nuovo Admin</CardTitle>
-                  <CardDescription>Crea un nuovo amministratore per la piattaforma</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {adminCreated && createdAdminInfo && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-green-800">
-                            Admin creato con successo!
-                          </h3>
-                          <div className="mt-2 text-sm text-green-700">
-                            <p><strong>Nome:</strong> {createdAdminInfo.name}</p>
-                            <p><strong>Email:</strong> {createdAdminInfo.email}</p>
-                            <p className="mt-1">✅ Email con credenziali inviata con successo!</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-2">
-                    <Label>Nome Admin</Label>
-                    <Input 
-                      value={newAdminName}
-                      onChangeText={setNewAdminName}
-                      placeholder="Nome del nuovo admin"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Email Admin</Label>
-                    <Input 
-                      value={newAdminEmail}
-                      onChangeText={setNewAdminEmail}
-                      placeholder="email@esempio.com"
-                      keyboardType="email-address"
-                    />
-                  </div>
-                  
-                  <Button 
-                    text={creatingAdmin ? "Creando..." : "Crea Admin"}
-                    onPress={handleCreateAdmin}
-                    disabled={creatingAdmin}
-                    className="w-fit"
-                  />
-                  
-                  <Separator className="my-4" />
-                  
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <Text className="text-sm text-blue-800">
-                      <Text className="font-semibold">Nota:</Text> Al nuovo admin verrà inviata automaticamente un'email con le credenziali temporanee. 
-                      Dovrà cambiare la password al primo accesso.
-                    </Text>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
-          <div>
-            <Button
-              text="Invia Email Admin"
-              onPress={sendAdminInviteEmail}
-              disabled={loading}
-              className="w-fit"
-            />
-          </div>
         </div>
       </PrivateLayout>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1">
-      <MobileHeader title="Profilo" icon="person-outline" />
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+    <SafeAreaView className="flex-1 bg-neutral-900">
+      <MobileHeader title="Profilo" icon={<Ionicons name="person-outline" size={20} color="white" />} />
+      <ScrollView className="flex-1 p-4 bg-white" showsVerticalScrollIndicator={false}>
         <View className="flex flex-col gap-6 mb-20">
           
           {/* Profile Section */}
@@ -626,71 +470,6 @@ const AdminProfile = () => {
             </View>
           </Card>
 
-          {/* Admin Creation Section */}
-          <Card className="p-4">
-            <Text className="text-lg font-semibold mb-4">Creazione Nuovo Admin</Text>
-            
-            <View className="space-y-4">
-              {adminCreated && createdAdminInfo && (
-                <View className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                  <View className="flex flex-row items-center">
-                    <View className="flex-shrink-0">
-                      <Text className="text-green-400 text-lg">✅</Text>
-                    </View>
-                    <View className="ml-3 flex-1">
-                      <Text className="text-sm font-medium text-green-800">
-                        Admin creato con successo!
-                      </Text>
-                      <View className="mt-2">
-                        <Text className="text-sm text-green-700">
-                          <Text className="font-semibold">Nome:</Text> {createdAdminInfo.name}
-                        </Text>
-                        <Text className="text-sm text-green-700">
-                          <Text className="font-semibold">Email:</Text> {createdAdminInfo.email}
-                        </Text>
-                        <Text className="text-sm text-green-700 mt-1">
-                          ✅ Email con credenziali inviata con successo!
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              )}
-              
-              <View className="space-y-2 mb-2">
-                <Text className="text-sm font-medium mb-1">Nome Admin</Text>
-                <Input 
-                  value={newAdminName}
-                  onChangeText={setNewAdminName}
-                  placeholder="Nome del nuovo admin"
-                />
-              </View>
-              
-              <View className="space-y-2 mb-2">
-                <Text className="text-sm font-medium mb-1">Email Admin</Text>
-                <Input 
-                  value={newAdminEmail}
-                  onChangeText={setNewAdminEmail}
-                  placeholder="email@esempio.com"
-                  keyboardType="email-address"
-                />
-              </View>
-              
-              <Button 
-                text={creatingAdmin ? "Creando..." : "Crea Admin"}
-                onPress={handleCreateAdmin}
-                disabled={creatingAdmin}
-                className='mt-2'
-              />
-              
-              <View className="bg-blue-50 p-3 rounded-lg mt-2">
-                <Text className="text-sm text-blue-800">
-                  <Text className="font-semibold">Nota:</Text> Al nuovo admin verrà inviata automaticamente un'email con le credenziali temporanee. 
-                  Dovrà cambiare la password al primo accesso.
-                </Text>
-              </View>
-            </View>
-          </Card>
         </View>
       </ScrollView>
     </SafeAreaView>

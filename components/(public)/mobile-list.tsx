@@ -11,6 +11,7 @@ import { View } from "react-native";
 import LoginModal from "../(auth)/LoginModal";
 import SectionTitle from "../ui/section-title";
 import MobileCard from "./mobile-card";
+import { ProductsGroup } from "@/app/(private)/(customer)";
 
 const MobileList = ({ showLoginModal, setShowLoginModal }: { showLoginModal: boolean, setShowLoginModal: (show: boolean) => void }) => {
   const { data: pizzas } = useCleanQuery(PIZZAS_QUERY) as { data: ProductProps[] };

@@ -1,3 +1,4 @@
+import { createCorsResponse, handleCorsOptions } from "@/lib/cors";
 import { PushNotificationData, sendOrderStatusPushNotification } from "@/lib/push-notifications";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { printLog } from "@/lib/utils";
@@ -56,23 +57,29 @@ if (currentEnv === 'development') {
   baseUrl = process.env.EXPO_PUBLIC_BASE_URL!
 }
 
+export async function OPTIONS(request: Request) {
+  return handleCorsOptions(request);
+}
+
 export async function POST(request: Request) {
   try {
     const { orderId, newStatus } = await request.json();
 
     if (!orderId || !newStatus) {
-      return Response.json(
+      return createCorsResponse(
         { error: "Order ID and new status are required" },
-        { status: 400 }
+        400,
+        request
       );
     }
 
     const admin = supabaseAdmin();
     if (!admin) {
       printLog("❌ Supabase admin client not initialized", true);
-      return Response.json(
+      return createCorsResponse(
         { error: "Service configuration error" },
-        { status: 500 }
+        500,
+        request
       );
     }
 
@@ -85,16 +92,18 @@ export async function POST(request: Request) {
 
     if (orderError) {
       printLog(`❌ Error fetching order: ${orderError}`, true);
-      return Response.json(
+      return createCorsResponse(
         { error: "Failed to fetch order details" },
-        { status: 500 }
+        500,
+        request
       );
     }
 
     if (!orderData) {
-      return Response.json(
+      return createCorsResponse(
         { error: "Order not found" },
-        { status: 404 }
+        404,
+        request
       );
     }
 
@@ -118,9 +127,10 @@ export async function POST(request: Request) {
 
     if (updateError) {
       printLog(`❌ Error updating order status: ${updateError}`, true);
-      return Response.json(
+      return createCorsResponse(
         { error: "Failed to update order status" },
-        { status: 500 }
+        500,
+        request
       );
     }
 
@@ -194,20 +204,52 @@ export async function POST(request: Request) {
       printLog(`📱 No expo push token found for user ${(orderData as any).user_id}`, true);
     }
 
+    // Update net profit if order is being marked as delivered and has Stripe payment intent
+    if (newStatus === 'delivered' && orderData.stripe_payment_intent_id && 
+        (orderData.payment_issuer === 'Unknown' || !orderData.net_profit || orderData.net_profit === 0)) {
+      
+      try {
+        printLog(`🔄 Updating net profit for delivered order ${orderId}`);
+        
+        const response = await fetch(`${baseUrl}/api/stripe/update-net-profit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+            paymentIntentId: orderData.stripe_payment_intent_id,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          printLog(`✅ Successfully updated net profit for delivered order ${orderId}: €${result.netProfit.toFixed(2)}`);
+        } else {
+          printLog(`❌ Failed to update net profit for delivered order ${orderId}: ${result.error}`, true);
+        }
+      } catch (error) {
+        printLog(`❌ Error updating net profit for delivered order ${orderId}: ${error}`, true);
+        // Don't fail the status update if net profit update fails
+      }
+    }
+
     printLog(`✅ Order status updated successfully: ${orderId} -> ${newStatus}`, true);
     
-    return Response.json({
+    return createCorsResponse({
       success: true,
       message: "Order status updated successfully",
       orderId,
       newStatus
-    });
+    }, 200, request);
 
   } catch (error) {
     printLog(`❌ Error updating order status: ${error}`, true);
-    return Response.json(
+    return createCorsResponse(
       { error: "Failed to update order status" },
-      { status: 500 }
+      500,
+      request
     );
   }
 }

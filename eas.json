@@ -11,6 +11,7 @@
         "APP_ENV": "development",
         "EXPO_PUBLIC_BASE_URL": "https://pizzaurum--demo.expo.app",
         "EXPO_PUBLIC_STRIPE_PUBLIC_KEY": "pk_test_51RfJg2A5zO2ndp904d9nxDXS0CTQzZdCw2hyEioFFz3glv1mCWbf747lE36YIdFzypuzd9rruwf9d7VaxbKG8zp600vs136kvK",
+        "EXPO_PUBLIC_STRIPE_PUBLIC_KEY_TEST": "pk_test_51RfJg2A5zO2ndp904d9nxDXS0CTQzZdCw2hyEioFFz3glv1mCWbf747lE36YIdFzypuzd9rruwf9d7VaxbKG8zp600vs136kvK",
         "EXPO_PUBLIC_STRIPE_MERCHANT_ID": "merchant.pizzaurum.com",
         "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD1WRcpMGXbePiPXtxXgZGYc1B2ru_OwX0",
         "EXPO_PUBLIC_SUPABASE_URL": "https://ncfqzaayqibsrngdzngg.supabase.co",

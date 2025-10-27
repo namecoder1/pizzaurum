@@ -50,7 +50,17 @@ export function useUserProfile() {
   }, [session?.user?.id, supabaseClient]);
 
   // Memoizza isAdmin per evitare ricalcoli non necessari
-  const isAdmin = useMemo(() => profile?.role === "admin", [profile?.role]);
+  const isAdmin = useMemo(() => {
+    const result = profile?.role === "admin";
+    console.log('🔍 useUserProfile isAdmin:', { role: profile?.role, isAdmin: result });
+    return result;
+  }, [profile?.role]);
+  
+  const isRider = useMemo(() => {
+    const result = profile?.role === "driver";
+    console.log('🔍 useUserProfile isRider:', { role: profile?.role, isRider: result });
+    return result;
+  }, [profile?.role]);
 
   const updateProfile = async (updates: Partial<UserProps>) => {
     if (!session?.user?.id) return { error: "No session" };
@@ -80,6 +90,7 @@ export function useUserProfile() {
     loading,
     error,
     isAdmin,
+    isRider,
     updateProfile,
     refetch: () => {
       if (session?.user?.id) {

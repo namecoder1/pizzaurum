@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 
-const MobileHeader = ({ title, icon }: { title: string, icon: keyof typeof Ionicons.glyphMap }) => {
+const MobileHeader = ({ title, icon }: { title: string, icon: React.ReactNode }) => {
   const { signOut } = useAuth();
 
   const handleLogout = () => {
@@ -11,12 +11,12 @@ const MobileHeader = ({ title, icon }: { title: string, icon: keyof typeof Ionic
   }
 
   return (
-    <View className="px-6 py-4 border-b border-border flex flex-row items-center justify-between gap-x-3">
+    <View className="px-6 py-4 border-b border-neutral-950 flex flex-row bg-neutral-900 items-center justify-between gap-x-3">
       <View className="flex-row items-center gap-x-3">
         <View className="bg-primary/80 p-2 rounded-xl">
-          <Ionicons name={icon} size={24} color="white" />
+          {icon}
         </View>
-        <Text className="text-3xl font-bold">{title}</Text>
+        <Text className="text-3xl font-bold text-white">{title}</Text>
       </View>
       <TouchableOpacity
         className="flex flex-row items-center gap-x-1.5"

@@ -4,6 +4,7 @@ import { useImmediatePurchaseEmail } from "@/hooks/useImmediatePurchaseEmail";
 import { createClientSupabase } from "@/lib/supabase";
 import { printLog } from "@/lib/utils";
 import { UserProps } from "@/types/types";
+import { config } from "@/utils/config";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -196,7 +197,9 @@ export default function MobileCart({
   };
 
   const handleCheckoutProceed = async (checkoutData: CheckoutData) => {
-    const baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:8081';
+    // Use local IP for mobile device access
+    const baseUrl = 'http://172.20.10.5:8081';
+    printLog(`🔍 Using baseUrl: ${baseUrl}`, true);
     
     // Additional validation for delivery
     if (checkoutData.deliveryType === "delivery") {
@@ -260,6 +263,12 @@ export default function MobileCart({
         const deliveryFee = 3;
         const finalTotal = totalPrice + (checkoutData.deliveryType === "delivery" ? deliveryFee : 0);
         
+        // Debug: Log the request details
+        printLog(`🔍 Debugging API call:`, true);
+        printLog(`- Base URL: ${baseUrl}`, true);
+        printLog(`- Full URL: ${baseUrl}/api/stripe/payment-sheet`, true);
+        printLog(`- Request method: POST`, true);
+        
         // Create payment intent using payment-sheet API
         const response = await fetch(`${baseUrl}/api/stripe/payment-sheet`, {
           method: 'POST',
@@ -291,13 +300,25 @@ export default function MobileCart({
         });
 
         printLog(`🟡 Payment Sheet API Response status: ${response.status}`)
+        printLog(`🟡 Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+        printLog(`🟡 Response URL: ${response.url}`);
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          printLog(`❌ Payment Sheet API Error Response: ${errorData}`, true);
+          let errorData = {};
+          try {
+            const responseText = await response.text();
+            printLog(`🟡 Raw response text: ${responseText}`);
+            errorData = JSON.parse(responseText);
+          } catch (parseError) {
+            printLog(`❌ Failed to parse error response: ${parseError}`, true);
+          }
+          
+          printLog(`❌ Payment Sheet API Error Response: ${JSON.stringify(errorData, null, 2)}`, true);
+          printLog(`❌ Response status: ${response.status}`);
+          printLog(`❌ Response statusText: ${response.statusText}`);
           Alert.alert(
             "Errore",
-            "Impossibile creare la sessione di pagamento. Riprova più tardi."
+            `Impossibile creare la sessione di pagamento. Errore: ${(errorData as any).error || (errorData as any).details || 'Sconosciuto'}. Status: ${response.status}. Riprova più tardi.`
           );
           return;
         }
@@ -319,7 +340,14 @@ export default function MobileCart({
         printLog(`🟡 Initializing Stripe Payment Sheet...`)
         
         // Initialize the payment sheet first
-        const { error: initError } = await stripe.initPaymentSheet({
+        printLog(`🟡 Payment Sheet config:`, true);
+        printLog(`- paymentIntentClientSecret: ${paymentIntent}`, true);
+        printLog(`- merchantDisplayName: Pizzaurum`, true);
+        printLog(`- publishableKey from API: ${publishableKey}`, true);
+        printLog(`- publishableKey from config: ${config.stripe.publishableKey}`, true);
+        printLog(`- NODE_ENV: ${process.env.NODE_ENV}`, true);
+        
+        const paymentSheetConfig = {
           paymentIntentClientSecret: paymentIntent,
           merchantDisplayName: 'Pizzaurum',
           defaultBillingDetails: {
@@ -333,24 +361,37 @@ export default function MobileCart({
             },
           },
           returnURL: 'pizzaurum://payment-return',
-        } as any);
+        };
+        
+        printLog(`🟡 Payment Sheet config object: ${JSON.stringify(paymentSheetConfig, null, 2)}`, true);
+        
+        const { error: initError } = await stripe.initPaymentSheet(paymentSheetConfig as any);
         
         if (initError) {
-          printLog(`❌ Payment Sheet init error: ${initError}`, true);
+          printLog(`❌ Payment Sheet init error: ${JSON.stringify(initError, null, 2)}`, true);
           Alert.alert(
             "Errore di inizializzazione",
-            "Impossibile inizializzare il pagamento. Riprova più tardi."
+            `Impossibile inizializzare il pagamento. Errore: ${initError.message || 'Sconosciuto'}`
           );
           return;
         }
         
+        printLog(`🟡 Payment Sheet initialized successfully!`, true);
+        
         printLog(`🟡 Presenting Stripe Payment Sheet...`)
         
         // Present the payment sheet
+        printLog(`🟡 Presenting Payment Sheet...`, true);
         const { error } = await stripe.presentPaymentSheet();
         
         if (error) {
-          printLog(`Payment Sheet error: ${error.error}`, true);
+          printLog(`❌ Payment Sheet error: ${JSON.stringify(error, null, 2)}`);
+          printLog(`❌ Error code: ${error.code}`);
+          printLog(`❌ Error message: ${error.message}`, true);
+          Alert.alert(
+            "Errore di pagamento",
+            `Errore: ${error.message || 'Sconosciuto'}`
+          );
           return;
         }
         

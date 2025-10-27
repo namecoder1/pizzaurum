@@ -51,6 +51,9 @@ export default ({ config }: ConfigContext ): ExpoConfig => {
           NSExceptionDomains: {
             "localhost": {
               NSExceptionAllowsInsecureHTTPLoads: true
+            },
+            "172.20.10.5": {
+              NSExceptionAllowsInsecureHTTPLoads: true
             }
           }
         },

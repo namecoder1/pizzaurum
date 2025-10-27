@@ -21,6 +21,7 @@ import { useAdminOrdersWithRealtime } from "@/hooks/useAdminOrdersWithRealtime";
 import { useOrderProductsEnrichmentForOrders } from '@/hooks/useOrderProductsEnrichment';
 import { processRefund } from "@/lib/orders-actions";
 import { OrderProps } from "@/types/types";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Platform,
@@ -340,9 +341,9 @@ export default function AdminOrders() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100 mb-16">
-      <MobileHeader title="Ordini" icon="list-outline" />
-      <ScrollView className="flex-1  py-4">
+    <SafeAreaView className="flex-1 bg-neutral-900 mb-14">
+      <MobileHeader title="Ordini" icon={<Ionicons name="list-outline" size={20} color="white" />} />
+      <ScrollView className="flex-1  py-4 bg-white">
 
         {/* Mobile Search Bar */}
         <View className="px-4 mb-4">

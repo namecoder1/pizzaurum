@@ -29,7 +29,16 @@ export const refundOrder = async (orderId: string) => {
 
 export const updateOrderStatus = async (status: string, orderId: string): Promise<void> => {
   try {
-    const baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:8081';
+    // Use APP_ENV if available, otherwise fallback to NODE_ENV
+    const currentEnv = process.env.APP_ENV || process.env.NODE_ENV;
+    
+    let baseUrl: string;
+    if (currentEnv === 'development') {
+      baseUrl = 'http://localhost:8081';
+    } else {
+      baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'https://pizzaurum--demo.expo.app';
+    }
+    
     const response = await fetch(`${baseUrl}/api/orders/update-status`, {
       method: 'POST',
       headers: {
@@ -68,7 +77,16 @@ export const updateOrderReport = async (orderId: string, report: ReportType) => 
 
 export const processRefund = async (orderId: string, userId?: string, isAdmin: boolean = false) => {
   try {
-    const baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:8081';
+    // Use APP_ENV if available, otherwise fallback to NODE_ENV
+    const currentEnv = process.env.APP_ENV || process.env.NODE_ENV;
+    
+    let baseUrl: string;
+    if (currentEnv === 'development') {
+      baseUrl = 'http://localhost:8081';
+    } else {
+      baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'https://pizzaurum--demo.expo.app';
+    }
+    
     const response = await fetch(`${baseUrl}/api/stripe/refund`, {
       method: 'POST',
       headers: {

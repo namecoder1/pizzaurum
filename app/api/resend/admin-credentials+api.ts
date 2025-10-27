@@ -4,7 +4,7 @@ export async function POST(request: Request) {
 
     if (!email || !name || !password) {
       return Response.json(
-        { error: 'Email, nome e password sono richiesti' },
+        { error: 'Email, name and password are required' },
         { status: 400 }
       )
     }

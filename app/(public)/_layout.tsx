@@ -18,6 +18,9 @@ export default function PublicLayout() {
     if (profile.role === "admin") {
       redirectAttempted.current = true;
       router.replace("/(private)/(admin)");
+    } else if (profile.role === "driver") {
+      redirectAttempted.current = true;
+      router.replace("/(private)/(rider)");
     } else if (profile.role === "customer") {
       redirectAttempted.current = true;
       router.replace("/(private)/(customer)");

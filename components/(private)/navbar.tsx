@@ -16,6 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Skeleton } from "../ui/skeleton";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Navbar = () => {
   const os = Platform.OS;
@@ -28,6 +29,7 @@ const Navbar = () => {
     updateQuantity,
     clearCart,
   } = useCartContext();
+  const { isRider } = useUserProfile();
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -141,6 +143,7 @@ const Navbar = () => {
     </div>
   );
 
+
   if (os === "web") {
     return (
       <nav className="fixed top-0 left-0 right-0 py-3 px-4 bg-white z-50 border-b border-gray-200">
@@ -160,6 +163,8 @@ const Navbar = () => {
               <li>
                 {isLoading ? (
                   <Skeleton className="w-20 h-6" />
+                ) : isRider ? (
+                  <Link href="/(private)/(rider)/assigned">I miei ordini</Link>
                 ) : !isAdmin ? (
                   <Link href="/(private)/(customer)">Ordina</Link>
                 ) : (
@@ -169,6 +174,8 @@ const Navbar = () => {
               <li>
                 {isLoading ? (
                   <Skeleton className="w-20 h-6" />
+                ) : isRider ? (
+                  <Link href="/(private)/(rider)/completed">Ordini completati</Link>
                 ) : isAdmin ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -190,6 +197,11 @@ const Navbar = () => {
                   <Link href="/(private)/(customer)/orders">I tuoi ordini</Link>
                 )}
               </li>
+              {isRider && (
+                <li>
+                  <Link href="/(private)/(rider)/earnings">Orari e stipendio</Link>
+                </li>
+              )}
               <li>
                 {isLoading ? (
                   <Skeleton className="w-20 h-6" />
@@ -218,7 +230,7 @@ const Navbar = () => {
             </ul>
           </div>          
           <div className="flex items-center gap-4">
-            {!isAdmin && (
+            {!isAdmin && !isRider && (
               <div className="relative hidden md:block">
                 <button
                   onClick={() => setShowCartDropdown(!showCartDropdown)}
@@ -255,6 +267,8 @@ const Navbar = () => {
                   <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
                     {isAdmin ? (
                       <Link href="/(private)/(admin)">Dashboard</Link>
+                    ) : isRider ? (
+                      <Link href="/(private)/(rider)/assigned">I miei ordini</Link>
                     ) : (
                       <Link href="/(private)/(customer)">Ordina</Link>
                     )}
@@ -271,13 +285,21 @@ const Navbar = () => {
                           <Link href="/(private)/(admin)/ordini/recensioni">Recensioni</Link>
                         </div>
                       </>
+                    ) : isRider ? (
+                      <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
+                        <Link href="/(private)/(rider)/completed">Ordini completati</Link>
+                      </DropdownMenuItem>
                     ) : (
-                      <Link href="/(private)/(customer)/orders">I tuoi ordini</Link>
+                      <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
+                        <Link href="/(private)/(customer)/orders">I tuoi ordini</Link>
+                      </DropdownMenuItem>
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
                     {isAdmin ? (
                       <Link href="/(private)/(admin)/analitiche">Analitiche</Link>
+                    ) : isRider ? (
+                      <Link href="/(private)/(rider)/earnings">Orari e stipendio</Link>
                     ) : (
                       <Link href="/(private)/(customer)/profile">Profilo</Link>
                     )}
@@ -287,11 +309,15 @@ const Navbar = () => {
                       <Link href="/(private)/(admin)/utenti">Gestione Utenti</Link>
                     </DropdownMenuItem>
                   )}
-                  {isAdmin && (
+                  {isAdmin ? (
                     <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
                       <Link href="/(private)/(admin)/profilo">Profilo</Link>
                     </DropdownMenuItem>
-                  )}
+                  ) : isRider ? (
+                    <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
+                      <Link href="/(private)/(rider)/profile">Profilo</Link>
+                    </DropdownMenuItem>
+                  ) : null}
                   {isAdmin && (
                     <DropdownMenuItem className="w-full flex justify-end rounded p-3" asChild>
                       <Link href="https://pizzaurum.sanity.studio" target="_blank">Gestione Menù</Link>

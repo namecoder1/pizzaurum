@@ -74,6 +74,7 @@ export interface OrderProps {
   is_custom_time: boolean;
   payment_issuer: string;
   is_email_sent?: boolean;
+  driver_id?: string;
 }
 
 export interface ReportType {
@@ -86,7 +87,7 @@ export interface UserProps {
   id: string;
   created_at: string;
   email: string;
-  role: string;
+  role: 'admin' | 'customer' | 'driver';
   address: string;
   name: string;
   phone: string;
@@ -94,6 +95,8 @@ export interface UserProps {
   reputation_score: number;
   phone_verified: boolean;
   otp: string;
+  expo_push_token?: string;
+  metadata: Record<string, string>;
 }
 
 export interface CustomerReviewProps {

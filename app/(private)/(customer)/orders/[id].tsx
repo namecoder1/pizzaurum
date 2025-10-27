@@ -299,6 +299,7 @@ const CustomerOrderPage = () => {
             </div>
           </div>
 
+
           {enrichedOrder.status === 'completed' && enrichedOrder.customer_review === null && (
             <Dialog open={enrichedOrder.status === "completed" && !enrichedOrder.customer_review}>
               <DialogContent>

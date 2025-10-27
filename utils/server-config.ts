@@ -35,5 +35,10 @@ export function getWebhookSecret(): string | undefined {
 
 // Helper function to check if we should bypass signature verification
 export function shouldBypassSignatureVerification(): boolean {
-  return serverConfig.webhook.bypassSignatureInDev && !serverConfig.stripe.webhookSecret;
+  const isDev = currentEnv === 'development' || currentEnv === 'dev' || process.env.NODE_ENV === 'development';
+  const hasNoSecret = !serverConfig.stripe.webhookSecret;
+  const shouldBypass = serverConfig.webhook.bypassSignatureInDev && isDev;
+  
+  console.log(`🔍 Bypass check: currentEnv=${currentEnv}, isDev=${isDev}, hasNoSecret=${hasNoSecret}, shouldBypass=${shouldBypass}`);
+  return shouldBypass;
 } 

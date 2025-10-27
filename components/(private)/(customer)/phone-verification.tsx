@@ -1,12 +1,58 @@
 "use client";
 
-import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { printLog } from "@/lib/utils";
-import { Phone, Shield } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+// Stili per i bottoni nativi
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  buttonDisabled: {
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonTextDisabled: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  buttonSecondaryText: {
+    color: '#3B82F6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 interface PhoneVerificationProps {
   isOpen: boolean;
@@ -23,6 +69,10 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   initialPhone = "",
   os,
 }) => {
+  // Early return if not open to prevent any rendering issues
+  if (!isOpen) {
+    return null;
+  }
 
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phoneNumber, setPhoneNumber] = useState(initialPhone);
@@ -78,6 +128,9 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       return;
     }
 
+    // Prevent multiple concurrent verification attempts
+    if (isLoading) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -101,11 +154,22 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       }
 
       setSuccess("Numero di telefono verificato con successo!");
-      onVerified(phoneNumber);
+      
+      // Call onVerified first
+      try {
+        onVerified(phoneNumber);
+      } catch (verificationError) {
+        printLog(`❌ Error in onVerified callback: ${verificationError}`, true);
+        // Don't throw here, continue with closing
+      }
 
-      // Close modal after success
+      // Close modal after success with a longer delay to ensure state updates complete
       setTimeout(() => {
-        handleClose();
+        try {
+          handleClose();
+        } catch (closeError) {
+          printLog(`❌ Error closing modal: ${closeError}`, true);
+        }
       }, 2000);
     } catch (error) {
       printLog(`❌ Error verifying code: ${error}`, true)
@@ -145,7 +209,7 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       text = e.target.value;
     }
     // Solo numeri
-    const value = text.replace(/\D/g, "");
+    const value = text.replace(/\D/g, "").slice(0, 6); // Limit to 6 digits
     setter(value);
   };
 
@@ -162,10 +226,7 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     }
   }, [isOpen, initialPhone]);
 
-  // Return null if not open
-  if (!isOpen) {
-    return null;
-  }
+  // This check is now at the beginning of the component
 
   if (os === "web") {
     return (
@@ -187,7 +248,7 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
           <>
             <div className="space-y-2 mt-4">
               <div className="flex flex-row items-center gap-2">
-                <Phone size={16} />
+                <Text>📱</Text>
                 <Label htmlFor="phone" className="text-sm font-medium">
                   Numero di telefono
                 </Label>
@@ -200,17 +261,21 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 className="my-2"
               />
             </div>
-            <Button
-              text={
-                isLoading
-                  ? "Invio in corso..."
-                  : initialPhone
-                    ? "Conferma e invia codice"
-                    : "Invia codice di verifica"
-              }
-              onPress={handleSendOTP}
+            <button
+              onClick={handleSendOTP}
               disabled={isLoading || !phoneNumber}
-            />
+              className={`w-full py-3 px-4 rounded-xl font-medium ${
+                isLoading || !phoneNumber
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isLoading
+                ? "Invio in corso..."
+                : initialPhone
+                  ? "Conferma e invia codice"
+                  : "Invia codice di verifica"}
+            </button>
           </>
         ) : (
           <>
@@ -227,18 +292,28 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
               </p>
             </div>
             <div className="flex flex-row gap-2">
-              <Button
-                text="Reinvia codice"
-                onPress={handleResendCode}
+              <button
+                onClick={handleResendCode}
                 disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                text="Verifica codice"
-                onPress={handleVerifyCode}
+                className={`flex-1 py-3 px-4 rounded-xl font-medium ${
+                  isLoading
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                }`}
+              >
+                Reinvia codice
+              </button>
+              <button
+                onClick={handleVerifyCode}
                 disabled={isLoading || verificationCode.length !== 6}
-                className="flex-1"
-              />
+                className={`flex-1 py-3 px-4 rounded-xl font-medium ${
+                  isLoading || verificationCode.length !== 6
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Verifica codice
+              </button>
             </div>
           </>
         )}
@@ -247,10 +322,10 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   }
 
   return (
-    <View className="space-y-4">
+      <View className="space-y-4">
       <View className="space-y-2">
         <View className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
+          <Text>🛡️</Text>
           <Text className="text-lg font-semibold">
             Verifica numero di telefono
           </Text>
@@ -280,7 +355,7 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
         <>
           <View className="space-y-2 mt-4">
             <View className="flex flex-row items-center gap-2">
-              <Phone size={16} />
+              <Text>📱</Text>
               <Label htmlFor="phone" className="text-sm font-medium">
                 Numero di telefono
               </Label>
@@ -293,17 +368,19 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
               className="my-2"
             />
           </View>
-          <Button
-            text={
-              isLoading
+          <TouchableOpacity
+            onPress={handleSendOTP}
+            disabled={isLoading || !phoneNumber}
+            style={isLoading || !phoneNumber ? styles.buttonDisabled : styles.button}
+          >
+            <Text style={isLoading || !phoneNumber ? styles.buttonTextDisabled : styles.buttonText}>
+              {isLoading
                 ? "Invio in corso..."
                 : initialPhone
                   ? "Conferma e invia codice"
-                  : "Invia codice di verifica"
-            }
-            onPress={handleSendOTP}
-            disabled={isLoading || !phoneNumber}
-          />
+                  : "Invia codice di verifica"}
+            </Text>
+          </TouchableOpacity>
         </>
       ) : (
         <>
@@ -319,19 +396,31 @@ export const PhoneVerification: React.FC<PhoneVerificationProps> = ({
               Codice inviato a: {phoneNumber}
             </Text>
           </View>
-          <View className="flex flex-row gap-2">
-            <Button
-              text="Reinvia codice"
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
               onPress={handleResendCode}
               disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              text="Verifica codice"
+              style={[
+                isLoading ? styles.buttonDisabled : styles.buttonSecondary,
+                { flex: 1 }
+              ]}
+            >
+              <Text style={isLoading ? styles.buttonTextDisabled : styles.buttonSecondaryText}>
+                Reinvia codice
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleVerifyCode}
               disabled={isLoading || verificationCode.length !== 6}
-              className="flex-1"
-            />
+              style={[
+                isLoading || verificationCode.length !== 6 ? styles.buttonDisabled : styles.button,
+                { flex: 1 }
+              ]}
+            >
+              <Text style={isLoading || verificationCode.length !== 6 ? styles.buttonTextDisabled : styles.buttonText}>
+                Verifica codice
+              </Text>
+            </TouchableOpacity>
           </View>
         </>
       )}

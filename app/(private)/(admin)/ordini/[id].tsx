@@ -133,6 +133,8 @@ const OrderPage = () => {
 
   if (loading || ordersLoading || isEnrichingProducts || isUpdatingFees) return <Loader size='fullscreen' text='Caricamento ordine...' />
 
+  console.log(enrichedOrder)
+
   if (os === 'web') {
     if (error || !order) {
       return (
@@ -239,7 +241,7 @@ const OrderPage = () => {
               <div className='mt-2 flex flex-col items-start gap-2'>
                 <p className='flex flex-row items-center gap-2'>
                   <span className='font-semibold'>Netto ordine:</span>
-                  <span>{enrichedOrder?.net_profit ? (enrichedOrder.net_profit / 100).toFixed(2) : '0.00'}€</span>
+                  <span>{enrichedOrder?.net_profit ? (enrichedOrder.net_profit / 100).toFixed(2) : enrichedOrder?.price.toFixed(2)}€</span>
                 </p>
                 <p className='flex flex-row items-center gap-2'>
                   <span className='font-semibold'>Orario {enrichedOrder?.is_delivery ? 'consegna' : 'ritiro'}:</span>

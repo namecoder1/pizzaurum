@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../contexts/auth-context";
 import { createClientSupabase } from "../../../lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
 
 interface AdminStats {
   totalUsers: number;
@@ -78,7 +79,8 @@ export default function AdminDashboard() {
         // Totale utenti
         createClientSupabase()
           .from("users")
-          .select("*", { count: "exact", head: true }),
+          .select("*", { count: "exact", head: true })
+          .neq('role', 'admin'),
         
         // Totale ordini
         createClientSupabase()
@@ -237,6 +239,37 @@ export default function AdminDashboard() {
     return <Loader size="fullscreen" text="Caricamento dashboard..." />;
   }
 
+  const statsCards = [
+    {
+      title: 'Utenti',
+      count: stats.totalUsers,
+      color: 'bg-blue-400',
+      icon: <UserIcon size={20} color="white" />,
+      href: "/(private)/(admin)/utenti",
+    },
+    {
+      title: 'Ordini',
+      count: stats.totalOrders,
+      color: 'bg-green-400',
+      icon: <ShoppingCartIcon size={20} color="white" />,
+      href: "/(private)/(admin)/ordini",
+    },
+    {
+      title: 'Ordini di oggi',
+      count: stats.todayOrders,
+      color: 'bg-purple-400',
+      icon: <CalendarClockIcon size={20} color="white" />,
+      href: "/(private)/(admin)/analitiche",
+    },
+    {
+      title: 'In Attesa',
+      count: stats.pendingOrders,
+      color: 'bg-orange-400',
+      icon: <ClockIcon size={20} color="white" />,
+      href: "/(private)/(admin)/ordini",
+    }
+  ]
+
   if (os === "web") {
     return (
       <PrivateLayout title="Dashboard | Pizzaurum" description="Con la dashboard puoi gestire tutti gli ordini, gli utenti e le recensioni">
@@ -322,59 +355,41 @@ export default function AdminDashboard() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
-      <MobileHeader title="Dashboard" icon="home-outline" />
-      <ScrollView className="flex-1 px-4 py-6">
-        {/* Header con indicatore real-time */}
+    <SafeAreaView className="flex-1 bg-neutral-900">
+      <MobileHeader title="Dashboard" icon={<Ionicons name="home-outline" size={20} color="white" />} />
+      <ScrollView className="flex-1 px-4 py-6 bg-white">
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-2xl font-bold">Dashboard Admin</Text>
         </View>
 
         {/* Stats Grid */}
         <View className="flex flex-row items-center justify-center gap-4 mb-6 px-2">
-          <View className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 w-1/2">
+          {statsCards.slice(0, 2).map((item, index) => (
+            <View key={index} className="bg-white p-4 rounded-xl border border-border w-1/2">
             <View className="flex-row items-center justify-between mb-2">
-              <View className="bg-blue-500 p-2 rounded-lg">
-                <UserIcon size={16} color="white" />
+              <View className={`p-2 rounded-lg ${item.color}`}>
+                {item.icon}
               </View>
-              <Text className="text-2xl font-bold text-gray-900">{stats.totalUsers}</Text>
+              <Text className="text-2xl font-bold text-gray-900">{item.count}</Text>
             </View>
-            <Text className="text-sm font-medium text-gray-900">Utenti</Text>
+            <Text className="text-sm font-medium text-gray-900">{item.title}</Text>
           </View>
-          
-          <View className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 w-1/2">
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="bg-green-500 p-2 rounded-lg">
-                <ShoppingCartIcon size={16} color="white" />
-              </View>
-              <Text className="text-2xl font-bold text-gray-900">{stats.totalOrders}</Text>
-            </View>
-            <Text className="text-sm font-medium text-gray-900">Ordini</Text>
-          </View>
+          ))}
+  
         </View>
 
         <View className="flex flex-row items-center justify-center gap-4 mb-6 px-2"> 
-          <View className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 w-1/2">
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="bg-purple-500 p-2 rounded-lg">
-                <CalendarClockIcon size={16} color="white" />
+          {statsCards.slice(2, 4).map((item, index) => (
+            <View key={index} className="bg-white p-4 rounded-xl border border-border w-1/2">
+              <View className="flex-row items-center justify-between mb-2">
+                <View className={`p-2 rounded-lg ${item.color}`}>
+                  {item.icon}
+                </View>
+                <Text className="text-2xl font-bold text-gray-900">{item.count}</Text>
               </View>
-              <Text className="text-2xl font-bold text-gray-900">{stats.todayOrders}</Text>
+              <Text className="text-sm font-medium text-gray-900">{item.title}</Text>
             </View>
-            <Text className="text-sm font-medium text-gray-900">Ordini di oggi</Text>
-          </View>
-          
-          <View className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 w-1/2">
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="bg-orange-500 p-2 rounded-lg">
-                <ClockIcon size={16} color="white" />
-              </View>
-              <Text className="text-2xl font-bold text-gray-900">{stats.pendingOrders}</Text>
-            </View>
-            <Text className="text-sm font-medium text-gray-900">In Attesa</Text>
-          </View>
-
-
+          ))}
         </View>
 
         {/* Menu Items */}
@@ -382,7 +397,7 @@ export default function AdminDashboard() {
           {mobileMenuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200"
+              className="bg-white p-4 rounded-xl border border-border"
               onPress={item.onPress}
             >
               <View className="flex-row items-center justify-between">
@@ -400,7 +415,6 @@ export default function AdminDashboard() {
                   </Text>
                   <Text className="text-gray-600">{item.description}</Text>
                 </View>
-                <View className="w-2 h-2 bg-gray-300 rounded-full" />
               </View>
             </TouchableOpacity>
           ))}

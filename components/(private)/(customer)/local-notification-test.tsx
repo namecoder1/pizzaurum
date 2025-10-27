@@ -47,7 +47,7 @@ const LocalNotificationTest = () => {
             }
           },
         },
-        trigger: { seconds: 5 },
+        trigger: { seconds: 5, type: 'timeInterval' },
       });
       printLog('✅ Delayed notification scheduled for 5 seconds');
     } catch (error) {

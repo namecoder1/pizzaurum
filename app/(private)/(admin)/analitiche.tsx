@@ -91,9 +91,9 @@ export default function AdminAnalytics() {
 
   // Mobile version
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
-      <MobileHeader title="Analitiche" icon="stats-chart-outline" />
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+    <SafeAreaView className="flex-1 bg-neutral-900">
+      <MobileHeader title="Analitiche" icon={<Ionicons name="stats-chart-outline" size={20} color="white" />} />
+      <ScrollView className="flex-1 p-4 bg-white" showsVerticalScrollIndicator={false}>
 
         <Tabs value={timeSpan} onValueChange={(value) => setTimeSpan(value as TimeSpan)}>
           <TabsList className="flex-row items-center w-full mb-4">
@@ -119,26 +119,39 @@ export default function AdminAnalytics() {
 
 const Data = ({ analyticsData, chartWidth, os }: { analyticsData: AnalyticsData, chartWidth: number, os: string }) => {
 
+  const statsData = [
+    {
+      title: 'Ordini Totali',
+      value: analyticsData.totalOrders,
+      textColor: 'text-gray-900~',
+    },
+    {
+      title: 'Profitto Netto',
+      value: analyticsData.totalNetProfit,
+      textColor: 'text-green-600',
+    },
+    {
+      title: 'Ordini Rimborsati',
+      value: analyticsData.refundedOrders,
+      textColor: 'text-red-600',
+    },
+    {
+      title: 'Ordini Segnalati',
+      value: analyticsData.reportedOrders,
+      textColor: 'text-orange-600',
+    }
+  ]
+
   if (os === 'web') {
     return (
       <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Ordini Totali</h3>
-            <p className="text-2xl font-bold text-gray-900">{analyticsData.totalOrders}</p>
-          </div>
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Profitto Netto</h3>
-            <p className="text-2xl font-bold text-green-600">€{analyticsData.totalNetProfit / 100}</p>
-          </div>
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Ordini Rimborsati</h3>
-            <p className="text-2xl font-bold text-red-600">{analyticsData.refundedOrders}</p>
-          </div>
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Ordini Segnalati</h3>
-            <p className="text-2xl font-bold text-orange-600">{analyticsData.reportedOrders}</p>
-          </div>
+          {statsData.map((item, index) => (
+            <div key={index} className="bg-white border rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-500 mb-1">{item.title}</h3>
+              <p className={`text-2xl font-bold ${item.textColor}`}>{item.value}</p>
+            </div>
+          ))}          
         </div>
   
         {/* Charts Grid */}
@@ -306,30 +319,26 @@ const Data = ({ analyticsData, chartWidth, os }: { analyticsData: AnalyticsData,
   return (
     <>
       <View className="flex flex-row items-center justify-center gap-4 mb-4 w-full">
-        <View className="bg-white border border-border rounded-lg p-4 flex-1">
-          <Text className="text-sm font-medium text-gray-500 mb-1">Ordini Totali</Text>
-          <Text className="text-2xl font-bold text-gray-900">{analyticsData.totalOrders}</Text>
-        </View>
-        <View className="bg-white border border-border rounded-lg p-4 flex-1">
-          <Text className="text-sm font-medium text-gray-500 mb-1">Profitto Netto</Text>
-          <Text className="text-2xl font-bold text-green-600">€{analyticsData.totalNetProfit / 100}</Text>
-        </View>
+        {statsData.slice(0, 2).map( (item, index) => (
+          <View key={index} className="bg-white border border-border rounded-lg p-4 flex-1">
+            <Text className="text-sm font-medium text-gray-500 mb-1">{item.title}</Text>
+            <Text className={`text-2xl font-bold ${item.textColor}`}>{item.value}</Text>
+          </View>
+        ))}
       </View>
       <View className="flex flex-row items-center justify-center gap-4 mb-8 w-full">
-        <View className="bg-white border border-border rounded-lg p-4 flex-1">
-          <Text className="text-sm font-medium text-gray-500 mb-1">Ordini Rimborsati</Text>
-          <Text className="text-2xl font-bold text-red-600">{analyticsData.refundedOrders}</Text>
-        </View>
-        <View className="bg-white border border-border rounded-lg p-4 flex-1">
-          <Text className="text-sm font-medium text-gray-500 mb-1">Ordini Segnalati</Text>
-          <Text className="text-2xl font-bold text-orange-600">{analyticsData.reportedOrders}</Text>
-        </View>
+        {statsData.slice(2, 4).map( (item, index) => (
+          <View key={index} className="bg-white border border-border rounded-lg p-4 flex-1">
+            <Text className="text-sm font-medium text-gray-500 mb-1">{item.title}</Text>
+            <Text className={`text-2xl font-bold ${item.textColor}`}>{item.value}</Text>
+          </View>
+        ))}
       </View>
   
       {/* Charts Grid */}
       <View className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-20">
         {/* Orders by Day Chart */}
-        <View className="bg-white border border-border rounded-lg p-6 w-full">
+        <View className="bg-white border border-border rounded-lg p-4 w-full">
           <View className="flex flex-row items-center gap-1.5">
             <AntDesign name="barschart" size={18} color="black" />
             <Text className="text-lg font-semibold">
@@ -359,7 +368,7 @@ const Data = ({ analyticsData, chartWidth, os }: { analyticsData: AnalyticsData,
         </View>
 
         {/* Net Profit by Day Chart */}
-        <View className="bg-white border border-border rounded-lg p-6 w-full">
+        <View className="bg-white border border-border rounded-lg p-4 w-full">
           <View className="flex flex-row items-center gap-1.5">
             <FontAwesome6 name="money-bills" size={16} color="black" />
             <Text className="text-lg font-semibold">
@@ -389,7 +398,7 @@ const Data = ({ analyticsData, chartWidth, os }: { analyticsData: AnalyticsData,
         </View>
 
         {/* Top Products Chart */}
-        <View className="bg-white border border-border rounded-lg p-6">
+        <View className="bg-white border border-border rounded-lg p-4">
           <View className="flex flex-row items-center gap-1.5">
             <Ionicons name="trophy-outline" size={16} color="black" />
             <Text className="text-lg font-semibold">
@@ -442,7 +451,7 @@ const Data = ({ analyticsData, chartWidth, os }: { analyticsData: AnalyticsData,
         </View>
 
         {/* Orders by Status Chart */}
-        <View className="bg-white border border-border rounded-lg p-6">
+        <View className="bg-white border border-border rounded-lg p-4">
           <View className="flex flex-row items-center gap-1.5">
             <FontAwesome6 name="pen-to-square" size={16} color="black" />
             <Text className="text-lg font-semibold">

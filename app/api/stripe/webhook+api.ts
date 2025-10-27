@@ -11,6 +11,15 @@ import { stripe } from "@/utils/stripe-server";
 
 // Helper function to get admin client with fallback
 async function getAdminClient(): Promise<any> {
+  printLog("🔧 Attempting to get Supabase admin client...");
+  
+  // Debug environment variables
+  printLog(`🔍 Environment variables check:`, true);
+  printLog(`- SUPABASE_SERVICE_ROLE_KEY: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING'}`, true);
+  printLog(`- EXPO_PUBLIC_SUPABASE_URL: ${process.env.EXPO_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING'}`, true);
+  printLog(`- NODE_ENV: ${process.env.NODE_ENV}`, true);
+  printLog(`- APP_ENV: ${process.env.APP_ENV}`, true);
+  
   let admin = supabaseAdmin();
   
   if (!admin) {
@@ -22,8 +31,14 @@ async function getAdminClient(): Promise<any> {
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       
+      printLog(`🔍 Fallback environment check:`, true);
+      printLog(`- serviceRoleKey: ${serviceRoleKey ? 'SET' : 'MISSING'}`, true);
+      printLog(`- supabaseUrl: ${supabaseUrl ? 'SET' : 'MISSING'}`, true);
+      
       if (!serviceRoleKey || !supabaseUrl) {
         printLog("❌ Missing required environment variables for manual admin client creation", true);
+        printLog(`❌ serviceRoleKey: ${serviceRoleKey ? 'SET' : 'MISSING'}`, true);
+        printLog(`❌ supabaseUrl: ${supabaseUrl ? 'SET' : 'MISSING'}`, true);
         throw new Error('Missing required environment variables');
       }
       
@@ -41,6 +56,8 @@ async function getAdminClient(): Promise<any> {
       printLog(`❌ Manual admin client creation failed: ${fallbackError}`, true);
       throw new Error('Supabase admin client not initialized and fallback failed');
     }
+  } else {
+    printLog("✅ Supabase admin client already initialized");
   }
   
   return admin;
@@ -156,7 +173,15 @@ export async function POST(request: Request) {
 
   let event: WebhookEvent;
 
-  if (shouldBypassSignatureVerification()) {
+  // Debug bypass logic
+  const shouldBypass = shouldBypassSignatureVerification();
+  const webhookSecret = getWebhookSecret();
+  printLog(`🔍 Bypass logic debug:`, true);
+  printLog(`- shouldBypass: ${shouldBypass}`, true);
+  printLog(`- webhookSecret: ${webhookSecret ? 'SET' : 'NOT_SET'}`, true);
+  printLog(`- signature: ${signature ? 'SET' : 'NOT_SET'}`, true);
+
+  if (shouldBypass) {
     printLog("⚠️  Bypassing signature verification in development");
     try {
       event = JSON.parse(body);
@@ -277,13 +302,36 @@ async function handleCheckoutSessionCompleted(session: StripeCheckoutSession) {
 
     printLog(`✅ No existing order found, proceeding with creation`);
 
+    // Debug session metadata
+    printLog(`🔍 Session metadata debug:`, true);
+    printLog(`- session.metadata: ${JSON.stringify(session.metadata, null, 2)}`, true);
+    printLog(`- session.payment_intent: ${session.payment_intent}`, true);
+    printLog(`- session.customer: ${session.customer}`, true);
+    printLog(`- session.customer_email: ${session.customer_email}`, true);
+
     // Validate user_id is present
     if (!session.metadata?.user_id) {
       printLog("❌ Missing user_id in session metadata. Cannot create order.", true);
+      printLog(`❌ Available metadata keys: ${Object.keys(session.metadata || {}).join(', ')}`, true);
       throw new Error("Missing user_id in session metadata");
     }
 
     printLog(`✅ User ID found: ${session.metadata.user_id}`);
+    
+    // Verify user exists in database
+    printLog(`🔍 Verifying user exists in database: ${session.metadata.user_id}`);
+    const { data: userData, error: userError } = await admin
+      .from("users")
+      .select("id, name, email")
+      .eq("id", session.metadata.user_id)
+      .single();
+    
+    if (userError) {
+      printLog(`❌ User not found in database: ${JSON.stringify(userError, null, 2)}`, true);
+      throw new Error(`User ${session.metadata.user_id} not found in database`);
+    }
+    
+    printLog(`✅ User verified in database: ${userData.name} (${userData.email})`);
 
     // Use estimated fees initially for fast order creation
     const totalAmount = session.amount_total / 100;
@@ -368,7 +416,26 @@ async function handleCheckoutSessionCompleted(session: StripeCheckoutSession) {
       is_email_sent: false
     };
 
-    printLog(`📝 Creating order with data: ${JSON.stringify(orderData)}`);
+    printLog(`📝 Creating order with data: ${JSON.stringify(orderData, null, 2)}`);
+
+    // Test the admin client connection first
+    printLog("🧪 Testing admin client connection...");
+    try {
+      const { data: testData, error: testError } = await admin
+        .from("users")
+        .select("count")
+        .limit(1);
+      
+      if (testError) {
+        printLog(`❌ Admin client test failed: ${JSON.stringify(testError, null, 2)}`, true);
+        throw new Error(`Admin client test failed: ${testError.message}`);
+      }
+      
+      printLog("✅ Admin client connection test successful");
+    } catch (testErr) {
+      printLog(`❌ Admin client connection test failed: ${testErr}`, true);
+      throw testErr;
+    }
 
     const { data: insertedOrder, error: insertError } = await admin
       .from("orders")
@@ -378,6 +445,7 @@ async function handleCheckoutSessionCompleted(session: StripeCheckoutSession) {
 
     if (insertError) {
       printLog(`❌ Error inserting order: ${JSON.stringify(insertError, null, 2)}`, true);
+      printLog(`❌ Order data that failed: ${JSON.stringify(orderData, null, 2)}`, true);
       throw insertError;
     }
 

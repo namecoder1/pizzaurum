@@ -1,6 +1,5 @@
 import MobileHeader from "@/components/(private)/(admin)/mobile-header";
 import BottomSheetOrder, { BottomSheetOrderRef } from "@/components/(private)/(customer)/bottomsheet-order";
-import LocalNotificationTest from "@/components/(private)/(customer)/local-notification-test";
 import MobileOrder from "@/components/(private)/mobile-order";
 import PageHeader from "@/components/(private)/page-header";
 import PrivateLayout from "@/components/(private)/private-layout";
@@ -18,6 +17,7 @@ import { useCustomerOrdersWithRealtime } from '@/hooks/useUnifiedOrdersRealtime'
 import { processRefund } from "@/lib/orders-actions";
 import { printLog } from "@/lib/utils";
 import { OrderProps } from "@/types/types";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { CircleQuestionMark } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from 'react';
@@ -246,12 +246,11 @@ const OrdersPage = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 mb-16 ">
-      <MobileHeader title="I tuoi ordini" icon="list-outline" />
+    <SafeAreaView className="flex-1 mb-14 bg-neutral-900 ">
+      <MobileHeader title="I tuoi ordini" icon={<Ionicons name="list-outline" size={20} color="white" />} />
 
-      <LocalNotificationTest />
       
-      <ScrollView className="pt-6">
+      <ScrollView className="pt-6 bg-white">
         {orders.length === 0 ? (
           <View className="flex-1 justify-center items-center p-8">
             <CircleQuestionMark size={48} color="#9ca3af" />

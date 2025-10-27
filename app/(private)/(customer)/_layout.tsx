@@ -11,53 +11,82 @@ import { Platform, View } from "react-native";
 
 export default function CustomerLayout() {
   const { session, loading } = useAuth();
-  const { profile, loading: profileLoading, isAdmin } = useUserProfile();
+  const { profile, loading: profileLoading, isAdmin, isRider } = useUserProfile();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const redirectAttempted = useRef(false);
 
   // Unified redirect logic to prevent race conditions and multiple redirects
   const handleRedirect = useCallback(() => {
-    if (redirectAttempted.current) return;
+    console.log('🔍 CustomerLayout Debug:', {
+      redirectAttempted: redirectAttempted.current,
+      loading,
+      profileLoading,
+      session: !!session,
+      isAdmin,
+      isRider,
+      profileRole: profile?.role,
+      allLoaded: !loading && !profileLoading
+    });
+
+    if (redirectAttempted.current) {
+      console.log('🚫 Redirect already attempted, skipping');
+      return;
+    }
     
     const allLoaded = !loading && !profileLoading;
     
-    if (!allLoaded) return;
-
-    // Redirect admin users to admin panel
-    if (session && isAdmin === true) {
-      redirectAttempted.current = true;
-      printLog('CustomerLayout: Redirecting admin to admin panel');
-      router.replace("/(private)/(admin)");
+    if (!allLoaded) {
+      console.log('⏳ Still loading, skipping redirect');
       return;
     }
 
-    // Redirect non-authenticated users to public area
+    // SECURITY: Redirect se non c'è sessione
     if (!session) {
       redirectAttempted.current = true;
+      console.log('🚪 No session, redirecting to public');
       router.replace("/(public)");
       return;
     }
-  }, [loading, profileLoading, session, isAdmin, router]);
+
+    // SECURITY: Solo i customer possono accedere a questa area
+    if (isAdmin === true || isRider === true) {
+      redirectAttempted.current = true;
+      console.log('⛔ User is admin or rider, redirecting based on role');
+      printLog('CustomerLayout: User is admin or rider, redirecting');
+      
+      // Redirect basato sul ruolo effettivo
+      if (isAdmin === true || profile?.role === "admin") {
+        console.log('👑 Redirecting admin to admin panel');
+        router.replace("/(private)/(admin)");
+      } else if (isRider === true || profile?.role === "driver") {
+        console.log('🏍️ Redirecting rider to rider panel');
+        router.replace("/(private)/(rider)");
+      }
+      return;
+    }
+
+    console.log('✅ User is customer, staying in customer area');
+  }, [loading, profileLoading, session, isAdmin, isRider, profile?.role, router]);
 
   useEffect(() => {
     handleRedirect();
   }, [handleRedirect]);
 
-  // Reset redirect flag when user becomes customer or session changes
+  // Reset redirect flag when user becomes customer
   useEffect(() => {
-    if (!loading && !profileLoading && session && isAdmin === false) {
+    if (!loading && !profileLoading && session && isAdmin === false && isRider === false) {
       redirectAttempted.current = false;
     }
-  }, [loading, profileLoading, session, isAdmin]);
+  }, [loading, profileLoading, session, isAdmin, isRider]);
 
   // Mostra loading durante il caricamento iniziale
   if (loading || profileLoading) {
     return <Loader size="fullscreen" text="Caricamento area cliente..." />;
   }
 
-  // Se non c'è sessione o è admin, mostra loading durante il redirect
-  if (!session || isAdmin === true) {
+  // SECURITY: Se non c'è sessione o è admin/rider, mostra loading durante il redirect
+  if (!session || isAdmin === true || isRider === true) {
     return <Loader size="fullscreen" text="Reindirizzamento..." />;
   }
 
@@ -79,7 +108,7 @@ export default function CustomerLayout() {
       {Platform.OS !== "web" && !isAdmin && (
         <MobileCart isOpen={isOpen} closeDialog={() => setIsOpen(false)} />
       )}
-      {Platform.OS !== "web" && <MobileBottomNav isAdmin={false} setIsOpen={setIsOpen} />}
+      {Platform.OS !== "web" && <MobileBottomNav role="customer" setIsOpen={setIsOpen} />}
     </View>
   );
 }

@@ -35,6 +35,7 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -57,6 +58,7 @@ import Loader from "../../../components/ui/Loader";
 import { useAuth } from "../../../contexts/auth-context";
 import { createClientSupabase } from "../../../lib/supabase";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 
 export default function Profile() {
   // Usa la stessa istanza del client
@@ -143,6 +145,8 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
+    // Chiudi la tastiera
+    Keyboard.dismiss();
     
     if (!session) {
       return;
@@ -1070,7 +1074,7 @@ export default function Profile() {
 
   // Mobile Layout
   return (
-    <SafeAreaView className="flex-1 mb-10">
+    <SafeAreaView className="flex-1 mb-10 bg-neutral-900">
       {/* Return to Checkout Banner - Mobile */}
       {returnTo === "checkout" && orderData && (
         <View className="bg-blue-50 border-b border-blue-200 px-4 py-3">
@@ -1103,10 +1107,10 @@ export default function Profile() {
       >
         <MobileHeader
           title="Il tuo account"
-          icon="person-outline"
+          icon={<Ionicons name="person-outline" size={20} color="white" />}
         />
         <ScrollView
-          className="flex-1"
+          className="flex-1 bg-white"
           keyboardShouldPersistTaps="handled"
           contentInsetAdjustmentBehavior="automatic"
         >
@@ -1179,7 +1183,7 @@ export default function Profile() {
                     consegnare i tuoi ordini.
                   </Text>
                 </View>
-                <View className="p-4">
+                <View className="py-4">
                   {/* Email */}
                   <View className="mb-4">
                     <Text className="text-sm font-bold mb-1">Email</Text>

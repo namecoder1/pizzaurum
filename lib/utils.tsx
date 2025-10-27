@@ -22,7 +22,22 @@ export function cn(...inputs: ClassValue[]) {
  * @param error - Whether the message is an error
  */
 export function printLog(message: string, error: boolean = false) {
-  if (process.env.NODE_ENV === "development") {
+  // Always log in development, or when APP_ENV is development, or when running Stripe CLI
+  const isDevelopment = process.env.NODE_ENV === "development" || 
+                       process.env.APP_ENV === "development" ||
+                       process.env.STRIPE_WEBHOOK_SECRET; // Stripe CLI sets this
+  
+  // Debug: Log environment info for troubleshooting
+  if (message.includes('🔔 Webhook received') || message.includes('🟡 Payment Sheet API called')) {
+    console.log(`🔍 Debug - Environment check:`, {
+      NODE_ENV: process.env.NODE_ENV,
+      APP_ENV: process.env.APP_ENV,
+      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ? 'SET' : 'NOT_SET',
+      isDevelopment
+    });
+  }
+  
+  if (isDevelopment) {
     if (error) {
       console.error(message);
     } else {

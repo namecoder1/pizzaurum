@@ -8,7 +8,9 @@ const isProduction = process.env.NODE_ENV === 'production'
 export const config = {
   // Stripe configuration (client-side safe)
   stripe: {
-    publishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY,
+    publishableKey: process.env.NODE_ENV === 'development' 
+      ? process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY_TEST 
+      : process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY,
   },
   
   // Environment detection

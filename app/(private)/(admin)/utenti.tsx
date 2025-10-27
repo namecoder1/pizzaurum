@@ -13,15 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/auth-context";
 import { useSupabase } from "@/contexts/supabase-context";
-import { printLog } from "@/lib/utils";
+import { checkIsUser, getInitials, getProductType, printLog } from "@/lib/utils";
 import { AnalyticsData, ProductAnalyticsData, ProductProps, SpianataProps, UserProps } from "@/types/types";
 import { fetchProductAnalytics } from "@/utils/analytics-actions";
 import { getAllProducts, getTopProductPosition, isTopProduct, useSanityData } from '@/utils/sanity-data';
-import { checkIsUser, getInitials, getProductType } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Session } from "@supabase/supabase-js";
@@ -32,6 +32,7 @@ import {
   Platform,
   ScrollView,
   Text,
+  TouchableOpacity,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,6 +42,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function AdminUsers() {
   const [tab, setTab] = React.useState('admin');
   const [generalTab, setGeneralTab] = React.useState('users');
+  const [adderDialogOpen, setAdderDialogOpen] = React.useState(false);
+  const [dialogContext, setDialogContext] = React.useState<'drivers' | 'admins'>('admins');
   const [selectedProduct, setSelectedProduct] = useState<ProductProps | SpianataProps | null>(null)
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalyticsData | null>(null);
   const os = Platform.OS;
@@ -54,6 +57,7 @@ export default function AdminUsers() {
   const { deleteUser } = useAuth();
   const supabaseClient = useSupabase();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const addUserBottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['50%'], []);
 
   const renderBackdrop = useCallback(
@@ -201,12 +205,15 @@ export default function AdminUsers() {
 
   if (os === 'web') {
     return (
-      <PrivateLayout title="Gestione Utenti | Pizzaurum" description="Gestione Utenti">
-        <section className="max-w-7xl mx-auto w-full px-4 py-8">
+      <PrivateLayout title="Gestione Utenti | Pizzaurum" description="Gestione Utenti" className="h-full">
+        <section className="max-w-7xl mx-auto h-full w-full px-4 py-8">
           <PageHeader title="Gestione Utenti" description="Gestisci tutti gli utenti registrati nella piattaforma" showChildren={true}>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">{users.length}</div>
-              <div className="text-sm text-gray-500">Utenti totali</div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">{users.length}</div>
+                <div className="text-sm text-gray-500">Utenti totali</div>
+              </div>
+              
             </div>
           </PageHeader>
 
@@ -214,6 +221,7 @@ export default function AdminUsers() {
             <TabsList className="flex-row items-center">
               <TabsTrigger value="admin" className="flex-1"><Text>Amministratori</Text></TabsTrigger>
               <TabsTrigger value="client" className="flex-1"><Text>Clienti</Text></TabsTrigger>
+              <TabsTrigger value="drivers" className="flex-1"><Text>Fattorini</Text></TabsTrigger>
             </TabsList>
             <TabsContent value="admin" className="mt-4 flex flex-col gap-2">
               {users.filter(user => user.role === 'admin').map((user) => (
@@ -322,7 +330,46 @@ export default function AdminUsers() {
                 </div>
               ))}
             </TabsContent>
+            <TabsContent value="drivers" className="mt-4 flex flex-col gap-2">
+              {users.filter(user => user.role === 'driver').map((user) => (
+                <div key={user.id} className="bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-primary/90 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-lg">
+                            {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 text-lg">
+                            {user.name || 'Utente senza nome'}
+                          </h3>
+                          <p className="text-gray-500 text-sm">{user.email || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </TabsContent>
           </Tabs>
+
+          {/* Bottone flottante per aggiungere admin/rider */}
+          {(tab === 'admin' || tab === 'drivers') && (
+            <div className="fixed bottom-8 right-8 z-50">
+              <Button
+                icon={<Ionicons name="add" size={20} color="black" />}
+
+                className="rounded-full w-12 h-12 shadow-md"
+                onPress={() => {
+                  setDialogContext(tab === 'admin' ? 'admins' : 'drivers');
+                  setAdderDialogOpen(true);
+                }}
+              />
+            </div>
+          )}
+          
         </section>
 
         {/* Dialog di conferma eliminazione */}
@@ -351,32 +398,42 @@ export default function AdminUsers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <DialogAdder
+          context={dialogContext}
+          adderDialogOpen={adderDialogOpen}
+          setAdderDialogOpen={setAdderDialogOpen}
+          onUserCreated={fetchUsers}
+        />
+        
       </PrivateLayout>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <MobileHeader title="Gestione" icon="storefront-outline" />
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+    <SafeAreaView className="flex-1 bg-neutral-900">
+      <MobileHeader title="Gestione" icon={<Ionicons name="storefront-outline" size={20} color="white" />} />
+      <ScrollView className="flex-1 p-4 bg-white" showsVerticalScrollIndicator={false}>
 
         <Tabs value={generalTab} onValueChange={setGeneralTab}>
-            <TabsList className="flex-row items-center mb-6">
-              <TabsTrigger value="users" className="flex-1">
-                <Text className="font-medium">👥 Utenti</Text>
-              </TabsTrigger>
-              <TabsTrigger value="products" className="flex-1">
-                <Text className="font-medium">🍕 Prodotti</Text>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="users">
+          <TabsList className="flex-row items-center mb-6">
+            <TabsTrigger value="users" className="flex-1">
+              <Text className="font-medium">👥 Utenti</Text>
+            </TabsTrigger>
+            <TabsTrigger value="products" className="flex-1">
+              <Text className="font-medium">🍕 Prodotti</Text>
+            </TabsTrigger>
+            <TabsTrigger value="drivers" className="flex-1">
+              <Text className="font-medium">🛵 Fattorini</Text>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="users">
               <View className="flex flex-col items-start justify-between gap-6 w-full mb-20">
                 <View className="flex flex-row items-center justify-between w-full">
                   <View>
                     <Text className="text-3xl font-bold text-gray-900">Gestione Utenti</Text>
                     <Text className="text-gray-500 mt-1">Gestisci tutti gli utenti registrati</Text>
                   </View>
-                  <View className="bg-primary/10 px-4 py-2 rounded-xl flex flex-col items-end justify-between">
+                  <View className="bg-primary/10 px-3 py-2 rounded-xl flex flex-row gap-x-1 items-end justify-between">
                     <Text className="text-sm font-bold text-primary">{users.length}</Text>
                     <Text className="text-primary text-sm">utenti</Text>
                   </View>
@@ -403,7 +460,7 @@ export default function AdminUsers() {
                     ))}
                   </TabsContent>
                   <TabsContent value="client" className="flex flex-col items-start justify-between gap-4 w-full">
-                    {users.filter(user => user.role !== 'admin').map((user) => (
+                    {users.filter(user => user.role === 'customer').map((user) => (
                       <UserCard 
                         user={user}
                         key={user.id}
@@ -424,7 +481,7 @@ export default function AdminUsers() {
                   <Text className="text-3xl font-bold text-gray-900">Gestione Prodotti</Text>
                   <Text className="text-gray-500 mt-1">Analizza le performance dei tuoi prodotti</Text>
                 </View>
-                <View className="bg-primary/10 px-4 py-2 rounded-xl flex flex-col items-end justify-between">
+                <View className="bg-primary/10 px-3 py-2 rounded-xl flex flex-row gap-x-1 items-end justify-between">
                   <Text className="text-sm text-primary font-bold">{allProducts.length}</Text>
                   <Text className="text-sm text-primary">prodotti</Text>
                 </View>
@@ -455,7 +512,34 @@ export default function AdminUsers() {
               )}
             </View>
           </TabsContent>
+          <TabsContent value="drivers">
+            <View className="flex flex-col items-start justify-between gap-6 w-full ">
+              <View className="flex flex-row items-center justify-between w-full mb-6">
+                <View>
+                  <Text className="text-3xl font-bold text-gray-900">Gestione Fattorini</Text>
+                  <Text className="text-gray-500 mt-1">Analizza le performance dei tuoi fattorini</Text>
+                </View>
+                <View className="bg-primary/10 px-3 py-2 rounded-xl flex flex-row gap-x-1 items-end justify-between">
+                  <Text className="text-sm text-primary font-bold">{users.filter(user => user.role === 'driver').length}</Text>
+                  <Text className="text-sm text-primary">fattorin{users.filter(user => user.role === 'driver').length > 1 ? 'i' : 'o'}</Text>
+                </View>
+              </View>
+            </View>
+            <View className="flex flex-col items-start justify-between gap-4 w-full">
+              {users.filter(user => user.role === 'driver').map((user) => (
+                <UserCard 
+                  user={user}
+                  key={user.id}
+                  deletingUsers={deletingUsers}
+                  handleDeleteUser={handleDeleteUser}
+                  getReputationText={getReputationText}
+                  session={session}
+                />
+              ))}
+            </View>
+          </TabsContent>
         </Tabs>
+        
         <CustomBottomSheet
           bottomSheetRef={bottomSheetRef}
           snapPoints={snapPoints}
@@ -489,7 +573,7 @@ export default function AdminUsers() {
                         {selectedProduct.name}
                       </Text>
                       <Text className="text-3xl font-bold text-green-600 mb-3">
-                        €{selectedProduct.price}
+                        €{selectedProduct.price.toFixed(2)}
                       </Text>
                       <Text className="text-gray-600 leading-6">
                         {selectedProduct.description} 
@@ -583,9 +667,417 @@ export default function AdminUsers() {
           </BottomSheetScrollView>
         </CustomBottomSheet>
       </ScrollView>
+      {(generalTab === 'drivers' || (generalTab === 'users' && tab === 'admin')) && (
+        <View className="absolute bottom-28 right-4 bg-white border rounded-xl p-2">
+          <TouchableOpacity onPress={() => {
+            addUserBottomSheetRef.current?.present();
+          }}>
+            <Ionicons name="add" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+      )}
+      <BottomSheetAdder 
+        context={generalTab === 'drivers' ? 'drivers' : 'admins'} 
+        ref={addUserBottomSheetRef as React.RefObject<BottomSheetModal>}
+        onUserCreated={fetchUsers}
+      />
     </SafeAreaView>
   );
 }
+
+const DialogAdder = ({
+  context,
+  adderDialogOpen,
+  setAdderDialogOpen,
+  onUserCreated
+}: {
+  context: 'drivers' | 'admins';
+  adderDialogOpen: boolean;
+  setAdderDialogOpen: (open: boolean) => void;
+  onUserCreated?: () => void;
+}) => {
+  // Form states
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const title = context === 'drivers' ? 'Aggiungi fattorino' : 'Aggiungi amministratore';
+  const baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:8081';
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !email.trim()) {
+      setError('Compila tutti i campi');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Crea l'utente
+      const createEndpoint = context === 'drivers' ? '/api/admin/create-rider' : '/api/admin/create-admin';
+      const response = await fetch(`${baseUrl}${createEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'Errore nella creazione');
+        return;
+      }
+
+      // Invia email con le credenziali
+      const emailEndpoint = context === 'drivers' ? '/api/resend/rider-credentials' : '/api/resend/admin-credentials';
+      const emailResponse = await fetch(`${baseUrl}${emailEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+          password: result.tempPassword,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        printLog('Errore nell\'invio email credenziali', true);
+      }
+
+      setSuccess(true);
+      setName('');
+      setEmail('');
+      
+      // Aggiorna la lista utenti
+      if (onUserCreated) {
+        onUserCreated();
+      }
+      
+      // Chiudi il dialog dopo 2 secondi
+      setTimeout(() => {
+        setSuccess(false);
+        setAdderDialogOpen(false);
+      }, 2000);
+
+    } catch (error) {
+      printLog(`Error creating ${context}: ${error}`, true);
+      setError('Si è verificato un errore inaspettato');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setAdderDialogOpen(false);
+    setName('');
+    setEmail('');
+    setError(null);
+    setSuccess(false);
+  };
+
+  return (
+    <Dialog open={adderDialogOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {context === 'drivers' ? 'Aggiungi un nuovo fattorino alla tua piattaforma' : 'Aggiungi un nuovo amministratore alla tua piattaforma'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {success && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">
+                    {context === 'drivers' ? 'Fattorino' : 'Amministratore'} creato con successo!
+                  </h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    Email con credenziali inviata con successo!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Errore
+                  </h3>
+                  <p className="text-sm text-red-700 mt-1">
+                    {error}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Nome</label>
+              <Input
+                value={name}
+                onChangeText={setName}
+                placeholder={`Nome del ${context === 'drivers' ? 'fattorino' : 'amministratore'}`}
+                editable={!loading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Email</label>
+              <Input
+                value={email}
+                onChangeText={setEmail}
+                placeholder="email@esempio.com"
+                keyboardType="email-address"
+                editable={!loading}
+              />
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">Nota:</span> Al {context === 'drivers' ? 'fattorino' : 'amministratore'} verrà inviata automaticamente un'email con le credenziali temporanee. 
+                Dovrà cambiare la password al primo accesso.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            text="Annulla"
+            variant="outline"
+            onPress={handleClose}
+            disabled={loading}
+          />
+          <Button
+            text={loading ? "Creando..." : `Crea ${context === 'drivers' ? 'Fattorino' : 'Amministratore'}`}
+            onPress={handleSubmit}
+            disabled={loading}
+          />
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface BottomSheetAdderProps {
+  context: 'drivers' | 'admins';
+  ref: React.RefObject<BottomSheetModal>;
+  onUserCreated?: () => void;
+}
+
+const BottomSheetAdder: React.FC<BottomSheetAdderProps> = React.forwardRef<BottomSheetModal, BottomSheetAdderProps>(
+  ({ context, onUserCreated }, ref) => {
+    const bottomSheetRef = useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(() => ['60%'], []);
+    
+    // Form states
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
+    React.useImperativeHandle(ref, () => bottomSheetRef.current!);
+    
+    const renderBackdrop = useCallback(
+      (props: any) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          opacity={0.5}
+        />
+      ),
+      []
+    );
+
+    const title = context === 'drivers' ? 'Aggiungi fattorino' : 'Aggiungi amministratore';
+    const baseUrl = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:8081';
+
+    const handleSubmit = async () => {
+      if (!name.trim() || !email.trim()) {
+        setError('Compila tutti i campi');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Crea l'utente
+        const createEndpoint = context === 'drivers' ? '/api/admin/create-rider' : '/api/admin/create-admin';
+        const response = await fetch(`${baseUrl}${createEndpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            name: name.trim(),
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || 'Errore nella creazione');
+          return;
+        }
+
+        // Invia email con le credenziali
+        const emailEndpoint = context === 'drivers' ? '/api/resend/rider-credentials' : '/api/resend/admin-credentials';
+        const emailResponse = await fetch(`${baseUrl}${emailEndpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            name: name.trim(),
+            password: result.tempPassword,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          printLog('Errore nell\'invio email credenziali', true);
+        }
+
+        setSuccess(true);
+        setName('');
+        setEmail('');
+        
+        // Aggiorna la lista utenti
+        if (onUserCreated) {
+          onUserCreated();
+        }
+        
+        // Chiudi il bottom sheet dopo 2 secondi
+        setTimeout(() => {
+          setSuccess(false);
+          bottomSheetRef.current?.dismiss();
+        }, 2000);
+
+      } catch (error) {
+        printLog(`Error creating ${context}: ${error}`, true);
+        setError('Si è verificato un errore inaspettato');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <CustomBottomSheet
+        bottomSheetRef={bottomSheetRef}
+        snapPoints={snapPoints}
+        renderBackdrop={renderBackdrop}
+        index={0}
+      >
+        <BottomSheetScrollView className="flex-1 px-6 py-4">
+          <View className="flex flex-col items-start justify-between gap-6 w-full mb-20">
+            <Text className="text-lg font-medium text-gray-900">{title}</Text>
+            
+            {success && (
+              <View className="bg-green-50 border border-green-200 rounded-lg p-4 w-full">
+                <View className="flex flex-row items-center">
+                  <Text className="text-green-400 text-lg mr-2">✅</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-green-800">
+                      {context === 'drivers' ? 'Fattorino' : 'Amministratore'} creato con successo!
+                    </Text>
+                    <Text className="text-sm text-green-700 mt-1">
+                      Email con credenziali inviata con successo!
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+            
+            {error && (
+              <View className="bg-red-50 border border-red-200 rounded-lg p-4 w-full">
+                <View className="flex flex-row items-center">
+                  <Text className="text-red-400 text-lg mr-2">❌</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-red-800">
+                      Errore
+                    </Text>
+                    <Text className="text-sm text-red-700 mt-1">
+                      {error}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+            
+            <View className="w-full space-y-4">
+              <View className="space-y-2">
+                <Text className="text-sm font-medium text-gray-700">Nome</Text>
+                <Input
+                  value={name}
+                  onChangeText={setName}
+                  placeholder={`Nome del ${context === 'drivers' ? 'fattorino' : 'amministratore'}`}
+                  editable={!loading}
+                />
+              </View>
+              
+              <View className="space-y-2">
+                <Text className="text-sm font-medium text-gray-700">Email</Text>
+                <Input
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="email@esempio.com"
+                  keyboardType="email-address"
+                  editable={!loading}
+                />
+              </View>
+              
+              <Button
+                text={loading ? "Creando..." : `Crea ${context === 'drivers' ? 'Fattorino' : 'Amministratore'}`}
+                onPress={handleSubmit}
+                disabled={loading}
+                className="w-full mt-4"
+              />
+              
+              <View className="bg-blue-50 p-3 rounded-lg">
+                <Text className="text-sm text-blue-800">
+                  <Text className="font-semibold">Nota:</Text> Al {context === 'drivers' ? 'fattorino' : 'amministratore'} verrà inviata automaticamente un'email con le credenziali temporanee. 
+                  Dovrà cambiare la password al primo accesso.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </BottomSheetScrollView>
+      </CustomBottomSheet>
+    );
+  }
+);
+
+BottomSheetAdder.displayName = 'BottomSheetAdder';
 
 
 const UserCard = ({ 
@@ -609,7 +1101,7 @@ const UserCard = ({
           <CardHeader className="w-full">
             <CardTitle className="flex flex-row items-center justify-between w-full">
               <View className="flex flex-row items-center gap-3">
-                <View className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                <View className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                   <Text className="text-white font-semibold text-lg">
                     {getInitials(user.name || user.email || 'Utente')}
                   </Text>
@@ -621,32 +1113,20 @@ const UserCard = ({
                   <Text className="text-sm text-gray-500">{user.email || 'N/A'}</Text>
                 </View>
               </View>
-              <View className="px-3 py-1 bg-gray-100 rounded-full">
-                <Text className="text-xs font-medium text-gray-600">Admin</Text>
-              </View>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="flex flex-col gap-y-1.5">
             <View className="flex flex-row items-center gap-3">
-              <Ionicons name="mail-outline" size={20} color="gray" />
+              <Ionicons name="mail-outline" size={16} color="gray" />
               <Text className="text-sm text-gray-600">{user.email || 'N/A'}</Text>
             </View>
             <View className="flex flex-row items-center gap-3">
-              <Ionicons name="call-outline" size={20} color="gray" />
-              <Text className="text-sm text-gray-600">{user.phone || 'N/A'}</Text>
-            </View>
-            <View className="flex flex-row items-center gap-3">
-              <Ionicons name="star-outline" size={20} color="gray" />
-              <Text className="text-sm text-gray-600">
-                Reputazione: {getReputationText(user.reputation_score)}
-              </Text>
-            </View>
-            <View className="flex flex-row items-center gap-3">
-              <Ionicons name="calendar-outline" size={20} color="gray" />
+              <Ionicons name="calendar-outline" size={16} color="gray" />
               <Text className="text-sm text-gray-600">
                 Utente da: {new Date(user.created_at).toLocaleDateString('it-IT', {
                   month: '2-digit',
-                  year: 'numeric'
+                  year: 'numeric',
+                  day: '2-digit'
                 })}
               </Text>
             </View>
@@ -675,6 +1155,60 @@ const UserCard = ({
     )
   }
 
+  if (user.role === 'driver') {
+    return (
+      <View className="flex flex-col w-full">
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="flex flex-row items-center justify-between w-full">
+              <View className="flex flex-row items-center gap-3">
+                <View className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                  <Text className="text-white font-semibold text-lg">
+                    {getInitials(user.name || user.email || 'Utente')}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-lg font-semibold text-gray-900">
+                    {user.name || 'Utente senza nome'}
+                  </Text>
+                  <Text className="text-sm text-gray-500">{user.email || 'N/A'}</Text>
+                </View>
+              </View>
+            
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-y-1.5">
+           
+            <View className="flex flex-row items-center gap-3">
+              <Ionicons name="mail-outline" size={16} color="gray" />
+              <Text className="text-sm text-gray-600">{user.email || 'N/A'}</Text>
+            </View>
+            
+            <View className="flex flex-row items-center gap-3">
+              <Ionicons name="calendar-outline" size={16} color="gray" />
+              <Text className="text-sm text-gray-600">
+                Utente da: {new Date(user.created_at).toLocaleDateString('it-IT', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+          </CardContent>
+          <CardFooter>
+            <Button
+              text={deletingUsers.has(user.id) ? 'Eliminando...' : 'Elimina fattorino'}
+              variant="destructive"
+              onPress={() => handleDeleteUser(user)}
+              disabled={deletingUsers.has(user.id)}
+              className="w-full"
+            />
+          </CardFooter>
+        </Card>
+      </View>
+    )
+  }
+
   // Customer user card
   return (
     <View className="flex flex-col w-full">
@@ -682,7 +1216,7 @@ const UserCard = ({
         <CardHeader className="w-full">
           <CardTitle className="flex flex-row items-center justify-between w-full">
             <View className="flex flex-row items-center gap-3">
-              <View className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+              <View className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                 <Text className="text-white font-semibold text-lg">
                   {getInitials(user.name || user.email || 'Utente')}
                 </Text>
@@ -694,36 +1228,28 @@ const UserCard = ({
                 <Text className="text-sm text-gray-500">{user.email || 'N/A'}</Text>
               </View>
             </View>
-            <View className={`px-3 py-1 rounded-full ${
-              user.reputation_score === 0 ? 'bg-gray-100' :
-              user.reputation_score > 0 ? 'bg-green-100' :
-              'bg-red-100'
-            }`}>
-              <Text className={`text-xs font-medium ${
-                user.reputation_score === 0 ? 'text-gray-600' :
-                user.reputation_score > 0 ? 'text-green-700' :
-                'text-red-700'
-              }`}>
-                {getReputationText(user.reputation_score)}
-              </Text>
-            </View>
+           
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="flex flex-col gap-y-1.5">
           <View className="flex flex-row items-center gap-3">
-            <Ionicons name="mail-outline" size={20} color="gray" />
+            <Ionicons name="star-outline" size={16} color="gray" />
+            <Text className="text-sm text-gray-600">{getReputationText(user.reputation_score)}</Text>
+          </View>
+          <View className="flex flex-row items-center gap-3">
+            <Ionicons name="mail-outline" size={16} color="gray" />
             <Text className="text-sm text-gray-600">{user.email || 'N/A'}</Text>
           </View>
           <View className="flex flex-row items-center gap-3">
-            <Ionicons name="call-outline" size={20} color="gray" />
+            <Ionicons name="call-outline" size={16} color="gray" />
             <Text className="text-sm text-gray-600">{user.phone || 'N/A'}</Text>
           </View>
-          <View className="flex flex-row items-start gap-3">
-            <Ionicons name="location-outline" size={20} color="gray" style={{ marginTop: 2 }} />
+          <View className="flex flex-row items-center gap-3">
+            <Ionicons name="location-outline" size={16} color="gray" />
             <Text className="text-sm text-gray-600 flex-1">{user.address || 'N/A'}</Text>
           </View>
           <View className="flex flex-row items-center gap-3">
-            <Ionicons name="calendar-outline" size={20} color="gray" />
+            <Ionicons name="calendar-outline" size={16} color="gray" />
             <Text className="text-sm text-gray-600">
               Registrato: {new Date(user.created_at).toLocaleDateString('it-IT', {
                 day: '2-digit',

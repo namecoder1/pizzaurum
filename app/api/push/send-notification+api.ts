@@ -24,6 +24,8 @@ export async function POST(request: Request) {
       channelId: channelId || 'default'
     }));
 
+    // ...
+
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
